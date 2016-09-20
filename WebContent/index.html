@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>分页</title>
+<script src="/page/static/jquery-1.12.2.min.js"></script>
+<link rel="stylesheet" href="/page/static/index.css">
+</head>
+<script>
+	$(function(){
+		//默认查询第一页数据，每页10条数据
+		var rs=select(1,10);
+		//初始化分页组件
+		_init_page(rs);
+		
+		//首页
+		$("#first").click(function(){
+			var r=select(1, 10);
+			_init_page(r);
+			setPcStyle();
+		});
+		//上一页
+		$("#previous").click(function(){
+			var pc=parseInt($("#pc").text());
+			if(pc==1) return;
+			var r=select(pc-1, 10);
+			_init_page(r);
+			setPcStyle();
+		});
+		//下一页
+		$("#next").click(function(){
+			var pc=parseInt($("#pc").text());
+			if(pc==$("#pt").text()) return;
+			var r=select(pc+1, 10);
+			_init_page(r);
+			setPcStyle();
+		});
+		//尾页
+		$("#last").click(function(){
+			var pt=parseInt($("#pt").text());
+			var r=select(pt, 10);
+			_init_page(r);
+			setPcStyle();
+		});
+		
+		//为每个页码设置对应的点击事件，使之能加载对应页码的页面
+		$(".pager").delegate(".selectPage","click",function(){
+			var r=select($(this).text(), 10);
+			_init_page(r);
+			setPcStyle();
+		});
+		
+		setPcStyle();
+	})
+	
+	//得到分页查询的数据
+	function select(pageCount,pageSize){
+		var rs;
+		$.ajax({
+			url:"/page/PageServlet",
+			type:"post",
+			data:{"pageSize":pageSize,"pageCount":pageCount},
+			dataType:"json",
+			async:false,
+			success:function(data){
+				rs=data;
+			}
+		});
+		return rs;
+	}
+	
+	//初始化分页组件，刷新list列表
+	function _init_page(rs){
+		$("#pc").text(rs.pc);
+		$("#pt").text(rs.pt);
+		var pc=parseInt(rs.pc);
+		var pt=parseInt(rs.pt);
+		$(".selectPage").each(function(){
+			$(this).empty();
+			$(this).remove();
+		})
+		//设置分页要展示的最大页码条数
+		if(pt<=10){
+			for(var i=pt;i>=1;i--){
+				var $pageArr=$("<li class='selectPage'>"+i+"</li>");
+				$("#previous").after($pageArr);
+			}
+		}else{
+			var start=pc-5;
+			var end=pc+4;
+			//若头溢出了，从第一页的页码开始展示
+			if(start<1){
+				for(var i=10;i>=1;i--){
+					var $pageArr=$("<li class='selectPage'>"+i+"</li>");
+					$("#previous").after($pageArr);
+				}
+			//若尾溢出了，最多只显示最后一页的页码
+			}else if(end>pt){
+				for(var i=pt;i>=pt-9;i--){
+					var $pageArr=$("<li class='selectPage'>"+i+"</li>");
+					$("#previous").after($pageArr);
+				}
+			//正常情况
+			}else{
+				for(var i=end;i>=start;i--){
+					var $pageArr=$("<li class='selectPage'>"+i+"</li>");
+					$("#previous").after($pageArr);
+				}
+			}
+		}
+		//动态生成分页条目数据
+		var items=rs.list;
+		$("#tableContent").empty();
+		$.each(items,function(){
+			var $tr=$("<tr>                     "+
+					"	<td class='name'>"+this.name+"</td>"+
+					"	<td class='pass'>"+this.pass+"</td>"+
+					"</tr>                    "
+					);
+			$tr.appendTo($("#tableContent"));		
+		});
+	}
+	
+	//设置当前页码的样式
+	function setPcStyle(){
+		var $selectPage=$(".pager").find(".selectPage");
+		$.each($selectPage,function(){
+			if($(this).text()==$("#pc").text()) $(this).addClass("pc-style");
+		})
+	}
+</script>
+<body>
+	<div class="container">
+		<div class="title">分页演示</div>
+		<!-- 展示list的容器 -->
+		<div class="main-content">
+			<table class="table">
+				<thead>
+					<td>姓名</td>
+					<td>密码</td>
+				</thead>
+				<tbody id="tableContent">
+				</tbody>
+			</table>
+		</div>
+		<!-- 展示分页组件的容器 -->
+		<div class="pager">
+			<ul>
+				<li id="first">首页</li>
+				<li id="previous">上一页</li>
+				<li id="next">下一页</li>
+				<li id="last">尾页</li>
+				<li>第<span id="pc"></span>页/共<span id="pt"></span>页</li>
+			</ul>
+		</div>
+	</div>
+</body>
+</html>
